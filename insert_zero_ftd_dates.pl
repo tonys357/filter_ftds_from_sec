@@ -16,10 +16,14 @@ use strict;
 #    - existence of files, is checked
 #
 #    NO Checking for : 
-#       - failure to align (should not happen with good date file)
-#       - short date file (date file does not reach end date of FTD file) (should not happen with good date file)
 #       - date file missing dates that are in FTD file ... (should never happen)
 #
+#    ADDED checking for :
+#       - failure to align
+#       - short date file (date file does not reach end date of FTD file) 
+#
+#
+
 
 my $argc = 0;
 foreach my $a(@ARGV) {
@@ -117,6 +121,25 @@ if ($date_ftd ne $date_line) {
 }
 while ($date_ftd ne $date_line) {
 	$last_line_date  = <FH_DATES>;
+	if (eof(FH_DATES)) {
+		print "ERROR : date file needs a start date at or before : ";
+		print $date_ftd;
+		print "\n";
+		
+		print "date data line : \n";
+		print $last_line_date;
+		print "\n";
+		
+		# close files, and quit
+		close(FH_DATES);
+		close(FH_FTDS);
+		close(FH_DATES);
+		close(FH_OUT_FTDS);
+		if ($argc == 4) {
+			close(FH_SKIP_DATES);
+		}
+		die;
+	}
 	if ($last_line_date =~ m/^([0-9]{4}-[0-9]{2}-[0-9]{2})/){
 		$date_line = $1;
 	}
@@ -149,6 +172,25 @@ while ($last_line_ftd = <FH_FTDS>) {
 	    	print FH_OUT_FTDS $outln;
 
 			# update date line, (for recheck -> next time thru while ($date_ftd ne $date_line) loop)
+			
+			# check for going past end of last date
+			if (eof(FH_DATES)) {
+				print "ERROR : end of date file reached.  The date file is too short.\n";
+				print "could not find ftd date in date file : ";
+				print $date_ftd;
+				print "\n";
+						
+				# close files, and quit
+				close(FH_DATES);
+				close(FH_FTDS);
+				close(FH_DATES);
+				close(FH_OUT_FTDS);
+				if ($argc == 4) {
+					close(FH_SKIP_DATES);
+				}
+				die;
+			}
+	
 			$last_line_date  = <FH_DATES>;
 			if ($last_line_date =~ m/^([0-9]{4}-[0-9]{2}-[0-9]{2})/){
 				$date_line = $1;
